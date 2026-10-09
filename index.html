@@ -1,1 +1,82 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Racing Adventure</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#17132e;color:white;font-family:Arial;text-align:center}
+h1{color:#ffd166;margin:20px 0 8px}
+p{margin:8px}
+#game{position:relative;width:min(94vw,360px);height:510px;margin:18px auto;background:#333;overflow:hidden;border:5px solid #777;border-radius:16px}
+.roadline{position:absolute;left:50%;width:8px;height:65px;background:#fff;transform:translateX(-50%)}
+.car{position:absolute;width:44px;height:72px;border-radius:12px 12px 8px 8px;border:3px solid white;bottom:20px;left:calc(50% - 22px);background:#ff3864;box-shadow:inset 0 12px #ff9fb4}
+.car:before,.enemy:before{content:"";position:absolute;top:10px;left:7px;width:24px;height:18px;background:#b7f5ff;border-radius:5px}
+.enemy{position:absolute;width:44px;height:72px;border-radius:12px;background:#3de0a3;border:3px solid white}
+.enemy:before{background:#b7f5ff}
+#hud{font-size:18px;font-weight:bold}
+button{border:0;border-radius:12px;padding:14px 25px;margin:5px;background:#ffd166;color:#25163f;font-size:18px;font-weight:bold}
+#start{background:#ff3864;color:white}
+#msg{font-size:20px;font-weight:bold;color:#ffd166;min-height:28px}
+</style>
+</head>
+<body>
+<h1>🏎️ Racing Adventure</h1>
+<p>Dodge the cars and make your best score!</p>
+<div id="hud">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
+<div id="game">
+<div class="car" id="player"></div>
+</div>
+<div id="msg">Ready to race?</div>
+<button id="left">⬅️ Left</button>
+<button id="right">Right ➡️</button>
+<br>
+<button id="start">▶ START GAME</button>
+<script>
+const game=document.getElementById('game');
+const player=document.getElementById('player');
+const scoreEl=document.getElementById('score');
+const bestEl=document.getElementById('best');
+const msg=document.getElementById('msg');
+let x=158,score=0,running=false,enemyList=[],lines=[],timer=null,raf=null;
+let best=Number(localStorage.getItem('racingBest')||0);
+bestEl.textContent=best;
+function move(dx){if(running){x=Math.max(8,Math.min(game.clientWidth-52,x+dx));player.style.left=x+'px'}}
+document.getElementById('left').onclick=()=>move(-35);
+document.getElementById('right').onclick=()=>move(35);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-35);if(e.key==='ArrowRight')move(35)});
+function start(){
+clearInterval(timer);cancelAnimationFrame(raf);
+enemyList.forEach(e=>e.el.remove());enemyList=[];lines.forEach(e=>e.remove());lines=[];
+for(let i=0;i<5;i++){let l=document.createElement('div');l.className='roadline';l.style.top=(i*120-40)+'px';game.appendChild(l);lines.push(l)}
+x=(game.clientWidth-44)/2;player.style.left=x+'px';
+score=0;scoreEl.textContent=score;running=true;msg.textContent='GO! GO! GO! 🏁';
+let tick=0;
+function loop(){
+if(!running)return;
+tick++;
+lines.forEach(l=>{let t=parseFloat(l.style.top)+5;if(t>game.clientHeight)t=-65;l.style.top=t+'px'});
+if(tick%48===0){
+let el=document.createElement('div');el.className='enemy';let ex=10+Math.random()*(game.clientWidth-64);el.style.left=ex+'px';el.style.top='-80px';game.appendChild(el);enemyList.push({el,y:-80,x:ex});
+}
+enemyList.forEach(e=>{
+e.y+=4+Math.min(score/100,5);e.el.style.top=e.y+'px';
+if(e.y>game.clientHeight){e.el.remove();e.dead=true;score+=10;scoreEl.textContent=score}
+let py=game.clientHeight-92;
+if(e.x<x+38&&e.x+38>x&&e.y+62>py&&e.y<py+65)end();
+});
+enemyList=enemyList.filter(e=>!e.dead);
+raf=requestAnimationFrame(loop);
+}
+loop();
+}
+function end(){if(!running)return;running=false;
+if(score>best){best=score;localStorage.setItem('racingBest',best);bestEl.textContent=best}
+msg.textContent='💥 Game Over! Score: '+score;
+}
+document.getElementById('start').onclick=start;
+</script>
+</body>
+</html>
